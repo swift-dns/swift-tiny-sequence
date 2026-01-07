@@ -1,0 +1,14 @@
+@available(swiftTinySequenceApplePlatforms 10.15, *)
+extension Array where Element: BitwiseCopyable {
+    /// Initializes an `Array` by copying the given span.
+    @inlinable
+    package init(copying span: Span<Element>) {
+        self.init(unsafeUninitializedCapacity: span.count) { buffer, initializedCount in
+            span.withUnsafeBytes { spanPtr in
+                let rawBuffer = UnsafeMutableRawBufferPointer(buffer)
+                rawBuffer.copyMemory(from: spanPtr)
+            }
+            initializedCount = span.count
+        }
+    }
+}

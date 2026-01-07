@@ -1,6 +1,6 @@
 # swift-tiny-sequence
 
-A library for containing types for storing the initial elements of a sequence inline on the stack, and allocating on the heap for more storage if needed.
+A library containing types for storing the initial elements of a sequence inline on the stack, and allocating on the heap for more storage if needed.
 
 Such types are common in performance-sensitive code, but are not intended towards everyday users.
 
