@@ -8,8 +8,8 @@ extension TinySequence where OtherContainer: ~Copyable, OtherContainer == RigidA
         operation: (Span<Element>) throws(E) -> T
     ) throws(E) -> T {
         switch self.base {
-        case .inline(let inlineElements, _):
-            return try inlineElements.withSpan {
+        case .inline(let inlineElements, _, let bytesCount):
+            return try inlineElements.withSpan(bytesCount: bytesCount) {
                 span throws(E) -> T in
                 try operation(span)
             }
@@ -23,16 +23,24 @@ extension TinySequence where OtherContainer: ~Copyable, OtherContainer == RigidA
         operation: (consuming MutableSpan<Element>) throws(E) -> T
     ) throws(E) -> T {
         switch self.takeBase() {
-        case .inline(var inlineElements, let reserveCapacity):
+        case .inline(var inlineElements, let reserveCapacity, let bytesCount):
             do {
-                let result = try inlineElements.withMutableSpan {
+                let result = try inlineElements.withMutableSpan(bytesCount: bytesCount) {
                     mutableSpan throws(E) -> T in
                     try operation(mutableSpan)
                 }
-                self = .inline(inlineElements, uncheckedReserveCapacity: reserveCapacity)
+                self = .inline(
+                    inlineElements,
+                    reserveCapacity: reserveCapacity,
+                    bytesCount: bytesCount
+                )
                 return result
             } catch {
-                self = .inline(inlineElements, uncheckedReserveCapacity: reserveCapacity)
+                self = .inline(
+                    inlineElements,
+                    reserveCapacity: reserveCapacity,
+                    bytesCount: bytesCount
+                )
                 throw error
             }
         case .other(var otherSequence):

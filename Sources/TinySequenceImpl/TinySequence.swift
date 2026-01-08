@@ -1,18 +1,19 @@
 @available(swiftTinySequenceApplePlatforms 10.15, *)
-public struct TinySequence<Element, InlineElements, OtherContainer>:
+public struct TinySequence<InlineElements, OtherContainer>:
     ~Copyable
 where
-    /// BitwiseCopyable requirement can possibly be lifted in the future.
-    Element: BitwiseCopyable,
     InlineElements: ~Copyable,
     InlineElements: _InlineElements,
-    InlineElements.Element == Element,
+    /// BitwiseCopyable requirement can possibly be lifted in the future.
+    InlineElements.Element: BitwiseCopyable,
     OtherContainer: ~Copyable
 {
+    public typealias Element = InlineElements.Element
+
     @usableFromInline
     package enum Base: ~Copyable {
         /// `reserveCapacity` is UInt32 to avoid inflating the memory layout stride.
-        case inline(InlineElements, reserveCapacity: UInt32)
+        case inline(InlineElements, reserveCapacity: UInt32, bytesCount: UInt8)
         case other(OtherContainer)
     }
 
@@ -38,46 +39,29 @@ where
     }
 
     @inlinable
-    public static func inline(
+    package static func inline(
         _ inlineElements: consuming InlineElements,
-        reserveCapacity: Int
+        reserveCapacity: UInt32,
+        bytesCount: UInt8
     ) -> Self {
-        precondition(reserveCapacity >= 0, "reserveCapacity must be non-negative")
-        precondition(
-            reserveCapacity <= UInt32.max,
-            "reserveCapacity must be less than or equal to UInt32.max"
-        )
-        let reserveCapacity = UInt32(truncatingIfNeeded: reserveCapacity)
-        return .inline(inlineElements, reserveCapacity: reserveCapacity)
-    }
-
-    @inlinable
-    public static func inline(
-        _ inlineElements: consuming InlineElements,
-        reserveCapacity: UInt32
-    ) -> Self {
-        precondition(
-            reserveCapacity <= Int.max,
-            "reserveCapacity must be less than or equal to Int.max"
-        )
-        precondition(
-            reserveCapacity > InlineElements.capacity,
-            "reserveCapacity must have enough space for at least 1 element more than the inline elements"
-        )
+        assert(bytesCount <= InlineElements.useableBytesCount)
+        assert(reserveCapacity <= Int32.max)
         return Self(
             base: .inline(
                 inlineElements,
-                reserveCapacity: reserveCapacity
+                reserveCapacity: reserveCapacity,
+                bytesCount: bytesCount
             )
         )
     }
 
     @inlinable
-    public static func inline(
-        _ inlineElements: consuming InlineElements,
-        uncheckedReserveCapacity reserveCapacity: UInt32
-    ) -> Self {
-        Self(base: .inline(inlineElements, reserveCapacity: reserveCapacity))
+    package static func inline(reserveCapacity: UInt32) -> Self {
+        Self.inline(
+            InlineElements(),
+            reserveCapacity: reserveCapacity,
+            bytesCount: 0
+        )
     }
 
     @inlinable
@@ -89,7 +73,6 @@ where
 @available(swiftTinySequenceApplePlatforms 10.15, *)
 extension TinySequence.Base: Sendable
 where
-    Element: Sendable,
     InlineElements: Sendable,
     OtherContainer: Sendable
 {}

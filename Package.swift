@@ -16,11 +16,15 @@ let package = Package(
     ],
     targets: [
         .target(
+            name: "TinySequenceCore",
+            swiftSettings: settings
+        ),
+        .target(
             name: "TinySequence",
             dependencies: [
                 "TinySequenceImpl",
-                "RigidArrayIntegration",
-                "UniqueArrayIntegration",
+                "RigidArrayPlusTinySequence",
+                "UniqueArrayPlusTinySequence",
             ],
             swiftSettings: settings
         ),
@@ -29,16 +33,18 @@ let package = Package(
             swiftSettings: settings
         ),
         .target(
-            name: "RigidArrayIntegration",
+            name: "RigidArrayPlusTinySequence",
             dependencies: [
+                "TinySequenceCore",
                 "TinySequenceImpl",
                 .product(name: "BasicContainers", package: "swift-collections"),
             ],
             swiftSettings: settings
         ),
         .target(
-            name: "UniqueArrayIntegration",
+            name: "UniqueArrayPlusTinySequence",
             dependencies: [
+                "TinySequenceCore",
                 "TinySequenceImpl",
                 .product(name: "BasicContainers", package: "swift-collections"),
             ],

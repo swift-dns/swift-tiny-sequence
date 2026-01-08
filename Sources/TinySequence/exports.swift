@@ -1,3 +1,3 @@
-@_exported import RigidArrayIntegration
+@_exported import RigidArrayPlusTinySequence
 @_exported import TinySequenceImpl
-@_exported import UniqueArrayIntegration
+@_exported import UniqueArrayPlusTinySequence
