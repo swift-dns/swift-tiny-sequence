@@ -4,9 +4,13 @@ where Element: BitwiseCopyable {
     public typealias BitPattern = (UInt64, UInt64, UInt64)
 
     public var _bits: BitPattern
+    public var reserveCapacity: UInt32
+    public var bytesCount: UInt8
 
-    public init() {
+    public init(reserveCapacity: UInt32) {
         self._bits = (0, 0, 0)
+        self.reserveCapacity = reserveCapacity
+        self.bytesCount = 0
     }
 }
 
@@ -17,29 +21,26 @@ extension _InlineElements24: SendableMetatype where Element: SendableMetatype {}
 extension _InlineElements24: _InlineElements {
     /// Returns true if the element was appended, false if the element was not appended because the inline elements are full.
     @inlinable
-    public mutating func append(_ element: Element, bytesCount: inout UInt8) -> Bool {
-        guard self.freeCapacity(bytesCount: bytesCount) > 0 else {
+    public mutating func append(_ element: Element) -> Bool {
+        guard self.freeCapacity > 0 else {
             return false
         }
         withUnsafeMutableBytes(of: &self._bits) { ptr in
             ptr.baseAddress.unsafelyUnwrapped.storeBytes(
                 of: element,
-                toByteOffset: Int(bytesCount),
+                toByteOffset: Int(self.bytesCount),
                 as: Element.self
             )
         }
-        bytesCount &+= UInt8(MemoryLayout<Element>.stride)
+        self.bytesCount &+= UInt8(MemoryLayout<Element>.stride)
         return true
     }
 
     @inlinable
-    public mutating func append(
-        copying newElements: UnsafeBufferPointer<Element>,
-        bytesCount: inout UInt8
-    ) -> Bool {
+    public mutating func append(copying newElements: UnsafeBufferPointer<Element>) -> Bool {
         let newElementsCount = newElements.count
         guard newElementsCount > 0 else { return true }
-        guard self.freeCapacity(bytesCount: bytesCount) >= newElementsCount else {
+        guard self.freeCapacity >= newElementsCount else {
             return false
         }
         let newElementsBytesCount = newElementsCount * MemoryLayout<Element>.stride
@@ -51,38 +52,32 @@ extension _InlineElements24: _InlineElements {
                     byteCount: newElementsBytesCount
                 )
         }
-        bytesCount &+= UInt8(newElementsBytesCount)
+        self.bytesCount &+= UInt8(newElementsBytesCount)
         return true
     }
 
     @inlinable
-    public mutating func append(
-        contentsOf newElements: some Sequence<Element>,
-        bytesCount: inout UInt8
-    ) -> Bool {
+    public mutating func append(contentsOf newElements: some Sequence<Element>) -> Bool {
         newElements.withContiguousStorageIfAvailable { buffer in
-            self.append(copying: buffer, bytesCount: &bytesCount)
-        } ?? self.append_slowPath(contentsOf: newElements, bytesCount: &bytesCount)
+            self.append(copying: buffer)
+        } ?? self.append_slowPath(contentsOf: newElements)
     }
 
     @inlinable
-    mutating func append_slowPath(
-        contentsOf newElements: some Sequence<Element>,
-        bytesCount: inout UInt8
-    ) -> Bool {
-        let initialBytesCount = bytesCount
+    mutating func append_slowPath(contentsOf newElements: some Sequence<Element>) -> Bool {
+        let initialBytesCount = self.bytesCount
         return withUnsafeMutableBytes(of: &self._bits) { ptr in
             for element in newElements {
-                bytesCount &+= UInt8(MemoryLayout<Element>.stride)
+                self.bytesCount &+= UInt8(MemoryLayout<Element>.stride)
 
-                if bytesCount > Self.useableBytesCount {
-                    bytesCount = initialBytesCount
+                if self.bytesCount > Self.useableBytesCount {
+                    self.bytesCount = initialBytesCount
                     return false
                 }
 
                 ptr.baseAddress.unsafelyUnwrapped.storeBytes(
                     of: element,
-                    toByteOffset: Int(bytesCount),
+                    toByteOffset: Int(self.bytesCount),
                     as: Element.self
                 )
             }

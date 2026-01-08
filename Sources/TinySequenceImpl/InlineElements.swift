@@ -4,18 +4,14 @@ public protocol _InlineElements<Element>: ~Copyable {
     associatedtype BitPattern: BitwiseCopyable
 
     var _bits: BitPattern { get set }
+    var reserveCapacity: UInt32 { get set }
+    var bytesCount: UInt8 { get set }
 
-    init()
+    init(reserveCapacity: UInt32)
 
-    mutating func append(_ element: Element, bytesCount: inout UInt8) -> Bool
-    mutating func append(
-        copying newElements: UnsafeBufferPointer<Element>,
-        bytesCount: inout UInt8
-    ) -> Bool
-    mutating func append(
-        contentsOf newElements: some Sequence<Element>,
-        bytesCount: inout UInt8
-    ) -> Bool
+    mutating func append(_ element: Element) -> Bool
+    mutating func append(copying newElements: UnsafeBufferPointer<Element>) -> Bool
+    mutating func append(contentsOf newElements: some Sequence<Element>) -> Bool
 }
 
 @available(swiftTinySequenceApplePlatforms 10.15, *)
@@ -31,8 +27,8 @@ extension _InlineElements where Self: ~Copyable {
     }
 
     @inlinable
-    func freeCapacity(bytesCount: UInt8) -> Int {
-        (Self.useableBytesCount &- Int(bytesCount)) / MemoryLayout<Element>.stride
+    var freeCapacity: Int {
+        (Self.useableBytesCount &- Int(self.bytesCount)) / MemoryLayout<Element>.stride
     }
 
     // public var span: Span<Element> {
@@ -71,7 +67,6 @@ extension _InlineElements where Self: ~Copyable {
 
     @inlinable
     package func withSpan<T, E: Error>(
-        bytesCount: UInt8,
         operation: (Span<Element>) throws(E) -> T
     ) throws(E) -> T {
         do {
@@ -91,13 +86,13 @@ extension _InlineElements where Self: ~Copyable {
 
     @inlinable
     package mutating func withMutableSpan<T, E: Error>(
-        bytesCount: UInt8,
         operation: (consuming MutableSpan<Element>) throws(E) -> T
     ) throws(E) -> T {
         do {
+            let bytesCount = Int(self.bytesCount)
             return try withUnsafeMutableBytes(of: &self._bits) { ptr in
                 assert(bytesCount <= ptr.count)
-                let range = Range(uncheckedBounds: (0, Int(bytesCount)))
+                let range = Range(uncheckedBounds: (0, bytesCount))
                 let bytes = ptr[range]
                 let mutableSpan = MutableSpan<Element>(_unsafeBytes: bytes)
                 return try operation(mutableSpan)

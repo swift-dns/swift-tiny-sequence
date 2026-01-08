@@ -12,8 +12,7 @@ where
 
     @usableFromInline
     package enum Base: ~Copyable {
-        /// `reserveCapacity` is UInt32 to avoid inflating the memory layout stride.
-        case inline(InlineElements, reserveCapacity: UInt32, bytesCount: UInt8)
+        case inline(InlineElements)
         case other(OtherContainer)
     }
 
@@ -39,29 +38,17 @@ where
     }
 
     @inlinable
-    package static func inline(
-        _ inlineElements: consuming InlineElements,
-        reserveCapacity: UInt32,
-        bytesCount: UInt8
-    ) -> Self {
-        assert(bytesCount <= InlineElements.useableBytesCount)
-        assert(reserveCapacity <= Int32.max)
+    package static func inline(_ elements: consuming InlineElements) -> Self {
+        assert(elements.bytesCount <= InlineElements.useableBytesCount)
+        assert(elements.reserveCapacity <= Int32.max)
         return Self(
-            base: .inline(
-                inlineElements,
-                reserveCapacity: reserveCapacity,
-                bytesCount: bytesCount
-            )
+            base: .inline(elements)
         )
     }
 
     @inlinable
     package static func inline(reserveCapacity: UInt32) -> Self {
-        Self.inline(
-            InlineElements(),
-            reserveCapacity: reserveCapacity,
-            bytesCount: 0
-        )
+        Self.inline(InlineElements(reserveCapacity: reserveCapacity))
     }
 
     @inlinable

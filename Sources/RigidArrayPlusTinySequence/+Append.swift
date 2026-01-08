@@ -5,20 +5,16 @@ public import TinySequenceImpl
 extension TinyRigidArray where OtherContainer: ~Copyable, OtherContainer == RigidArray<Element> {
     public mutating func append(_ element: Element) {
         switch self.takeBase() {
-        case .inline(var inlineElements, let reserveCapacity, var bytesCount):
-            if inlineElements.append(element, bytesCount: &bytesCount) {
-                self = .inline(
-                    inlineElements,
-                    reserveCapacity: reserveCapacity,
-                    bytesCount: bytesCount
-                )
+        case .inline(var inlineElements):
+            if inlineElements.append(element) {
+                self = .inline(inlineElements)
             } else {
-                let capacity = Int(truncatingIfNeeded: reserveCapacity)
+                let capacity = Int(truncatingIfNeeded: inlineElements.reserveCapacity)
                 var otherContainer = RigidArray<Element>(capacity: capacity)
                 // otherContainer.edit { output in
                 // FIXME: Use this instead of 2 different appends
                 // }
-                inlineElements.withSpan(bytesCount: bytesCount) { span in
+                inlineElements.withSpan { span in
                     otherContainer.append(copying: span)
                 }
                 otherContainer.append(element)
@@ -32,20 +28,17 @@ extension TinyRigidArray where OtherContainer: ~Copyable, OtherContainer == Rigi
 
     public mutating func append(copying newElements: UnsafeBufferPointer<Element>) {
         switch self.takeBase() {
-        case .inline(var inlineElements, let reserveCapacity, var bytesCount):
-            if inlineElements.append(copying: newElements, bytesCount: &bytesCount) {
-                self = .inline(
-                    inlineElements,
-                    reserveCapacity: reserveCapacity,
-                    bytesCount: bytesCount
-                )
+        case .inline(var inlineElements):
+            let reserveCapacity = inlineElements.reserveCapacity
+            if inlineElements.append(copying: newElements) {
+                self = .inline(inlineElements)
             } else {
                 let capacity = Int(truncatingIfNeeded: reserveCapacity)
                 var otherContainer = RigidArray<Element>(capacity: capacity)
                 // otherContainer.edit { output in
                 // FIXME: Use this instead of 2 different appends
                 // }
-                inlineElements.withSpan(bytesCount: bytesCount) { span in
+                inlineElements.withSpan { span in
                     otherContainer.append(copying: span)
                 }
                 otherContainer.append(copying: newElements)
@@ -59,20 +52,16 @@ extension TinyRigidArray where OtherContainer: ~Copyable, OtherContainer == Rigi
 
     public mutating func append(contentsOf newElements: some Sequence<Element>) {
         switch self.takeBase() {
-        case .inline(var inlineElements, let reserveCapacity, var bytesCount):
-            if inlineElements.append(contentsOf: newElements, bytesCount: &bytesCount) {
-                self = .inline(
-                    inlineElements,
-                    reserveCapacity: reserveCapacity,
-                    bytesCount: bytesCount
-                )
+        case .inline(var inline):
+            if inline.append(contentsOf: newElements) {
+                self = .inline(inline)
             } else {
-                let capacity = Int(truncatingIfNeeded: reserveCapacity)
+                let capacity = Int(truncatingIfNeeded: inline.reserveCapacity)
                 var otherContainer = RigidArray<Element>(capacity: capacity)
                 // otherContainer.edit { output in
                 // FIXME: Use this instead of 2 different appends
                 // }
-                inlineElements.withSpan(bytesCount: bytesCount) { span in
+                inline.withSpan { span in
                     otherContainer.append(copying: span)
                 }
                 otherContainer.append(copying: newElements)
