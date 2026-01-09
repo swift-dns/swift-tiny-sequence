@@ -3,7 +3,7 @@ public protocol _InlineElements<Element>: ~Copyable {
     associatedtype Element: BitwiseCopyable
     associatedtype BitPattern: BitwiseCopyable
 
-    var _bits: BitPattern { get set }
+    var bits: BitPattern { get set }
     var reserveCapacity: UInt32 { get set }
     var bytesCount: UInt8 { get set }
 
@@ -12,18 +12,23 @@ public protocol _InlineElements<Element>: ~Copyable {
     mutating func append(_ element: Element) -> Bool
     mutating func append(copying newElements: UnsafeBufferPointer<Element>) -> Bool
     mutating func append(contentsOf newElements: some Sequence<Element>) -> Bool
+    mutating func append<E: Error, Result: ~Copyable>(
+        count: Int,
+        initializingWith body: (inout OutputSpan<Element>) throws(E) -> Result
+    ) throws(E) -> Result?
 }
 
 @available(swiftTinySequenceApplePlatforms 10.15, *)
 extension _InlineElements where Self: ~Copyable {
+    /// e.g. if a type takes 5 bytes, we only can make use of 20 bytes and the last 4 will be unusable.
     @inlinable
     static var useableBytesCount: Int {
-        MemoryLayout<BitPattern>.size
+        Self.capacity &* MemoryLayout<Element>.stride
     }
 
     @inlinable
     static var capacity: Int {
-        Self.useableBytesCount / MemoryLayout<Element>.stride
+        MemoryLayout<BitPattern>.size / MemoryLayout<Element>.stride
     }
 
     @inlinable
@@ -35,7 +40,7 @@ extension _InlineElements where Self: ~Copyable {
     //     @_lifetime(borrow self)
     //     get {
     //         // God forgive me for escaping this pointer out of the closure 🤲🏻
-    //         let ptrBytes = withUnsafeBytes(of: self._bits) { ptr in
+    //         let ptrBytes = withUnsafeBytes(of: self.bits) { ptr in
     //             let bytesCount = ptr[Self.bytesCountByteIndex]
     //             let bytesCount = Int(bytesCount) &* MemoryLayout<Element>.stride
     //             assert(bytesCount < ptr.bytesCount)
@@ -53,7 +58,7 @@ extension _InlineElements where Self: ~Copyable {
     //     @_lifetime(&self)
     //     mutating get {
     //         // God forgive me for escaping this pointer out of the closure 🤲🏻
-    //         let ptrBytes = withUnsafeMutableBytes(of: &self._bits) { ptr in
+    //         let ptrBytes = withUnsafeMutableBytes(of: &self.bits) { ptr in
     //             let bytesCount = ptr[Self.bytesCountByteIndex]
     //             let bytesCount = Int(bytesCount) &* MemoryLayout<Element>.stride
     //             assert(bytesCount < ptr.bytesCount)
@@ -67,40 +72,28 @@ extension _InlineElements where Self: ~Copyable {
 
     @inlinable
     package func withSpan<T, E: Error>(
-        operation: (Span<Element>) throws(E) -> T
+        body: (Span<Element>) throws(E) -> T
     ) throws(E) -> T {
-        do {
-            return try withUnsafeBytes(of: self._bits) { ptr in
-                assert(bytesCount <= ptr.count)
-                let range = Range(uncheckedBounds: (0, Int(bytesCount)))
-                let bytes = ptr[range]
-                let span = Span<Element>(_unsafeBytes: bytes)
-                return try operation(span)
-            }
-        } catch let error as E {
-            throw error
-        } catch {
-            fatalError("Impossible code path")
+        try withUnsafeBytes(of: self.bits) { ptr throws(E) -> T in
+            assert(bytesCount <= ptr.count)
+            let range = Range(uncheckedBounds: (0, Int(bytesCount)))
+            let bytes = ptr[range]
+            let span = Span<Element>(_unsafeBytes: bytes)
+            return try body(span)
         }
     }
 
     @inlinable
     package mutating func withMutableSpan<T, E: Error>(
-        operation: (consuming MutableSpan<Element>) throws(E) -> T
+        body: (consuming MutableSpan<Element>) throws(E) -> T
     ) throws(E) -> T {
-        do {
-            let bytesCount = Int(self.bytesCount)
-            return try withUnsafeMutableBytes(of: &self._bits) { ptr in
-                assert(bytesCount <= ptr.count)
-                let range = Range(uncheckedBounds: (0, bytesCount))
-                let bytes = ptr[range]
-                let mutableSpan = MutableSpan<Element>(_unsafeBytes: bytes)
-                return try operation(mutableSpan)
-            }
-        } catch let error as E {
-            throw error
-        } catch {
-            fatalError("Impossible code path")
+        let bytesCount = Int(self.bytesCount)
+        return try withUnsafeMutableBytes(of: &self.bits) { ptr throws(E) -> T in
+            assert(bytesCount <= ptr.count)
+            let range = Range(uncheckedBounds: (0, bytesCount))
+            let bytes = ptr[range]
+            let mutableSpan = MutableSpan<Element>(_unsafeBytes: bytes)
+            return try body(mutableSpan)
         }
     }
 }
