@@ -30,6 +30,9 @@ let package = Package(
         ),
         .target(
             name: "TinySequenceImpl",
+            dependencies: [
+                "TinySequenceCore",
+            ],
             swiftSettings: settings
         ),
         .target(
@@ -69,6 +72,7 @@ var settings: [SwiftSetting] {
         .enableUpcomingFeature("InternalImportsByDefault"),
         .enableUpcomingFeature("ExistentialAny"),
         .enableExperimentalFeature("Lifetimes"),
+        .enableExperimentalFeature("BuiltinModule"),
         .enableExperimentalFeature(
             "AvailabilityMacro=swiftTinySequenceApplePlatforms 26:macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26"
         ),

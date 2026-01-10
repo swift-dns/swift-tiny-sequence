@@ -1,4 +1,5 @@
 public import BasicContainers
+import TinySequenceCore
 public import TinySequenceImpl
 
 @available(swiftTinySequenceApplePlatforms 10.15, *)
@@ -7,16 +8,17 @@ extension TinyRigidArray where OtherContainer: ~Copyable, OtherContainer == Rigi
         switch self.takeBase() {
         case .inline(var inlineElements):
             if inlineElements.append(element) {
+                print(1, #function, #fileID, Array(copying: inlineElements.span))
                 self = .inline(inlineElements)
             } else {
+                let inlineElementsSpan = inlineElements.span
+                print(2, #function, #fileID, Array(copying: inlineElementsSpan))
                 let capacity = Int(truncatingIfNeeded: inlineElements.reserveCapacity)
                 var otherContainer = RigidArray<Element>(capacity: capacity)
                 // otherContainer.edit { output in
                 // FIXME: Use this instead of 2 different appends
                 // }
-                inlineElements.withSpan { span in
-                    otherContainer.append(copying: span)
-                }
+                otherContainer.append(copying: inlineElementsSpan)
                 otherContainer.append(element)
                 self = .other(otherContainer)
             }
@@ -38,9 +40,7 @@ extension TinyRigidArray where OtherContainer: ~Copyable, OtherContainer == Rigi
                 // otherContainer.edit { output in
                 // FIXME: Use this instead of 2 different appends
                 // }
-                inlineElements.withSpan { span in
-                    otherContainer.append(copying: span)
-                }
+                otherContainer.append(copying: inlineElements.span)
                 otherContainer.append(copying: newElements)
                 self = .other(otherContainer)
             }
@@ -52,18 +52,16 @@ extension TinyRigidArray where OtherContainer: ~Copyable, OtherContainer == Rigi
 
     public mutating func append(contentsOf newElements: some Sequence<Element>) {
         switch self.takeBase() {
-        case .inline(var inline):
-            if inline.append(contentsOf: newElements) {
-                self = .inline(inline)
+        case .inline(var inlineElements):
+            if inlineElements.append(contentsOf: newElements) {
+                self = .inline(inlineElements)
             } else {
-                let capacity = Int(truncatingIfNeeded: inline.reserveCapacity)
+                let capacity = Int(truncatingIfNeeded: inlineElements.reserveCapacity)
                 var otherContainer = RigidArray<Element>(capacity: capacity)
                 // otherContainer.edit { output in
                 // FIXME: Use this instead of 2 different appends
                 // }
-                inline.withSpan { span in
-                    otherContainer.append(copying: span)
-                }
+                otherContainer.append(copying: inlineElements.span)
                 otherContainer.append(copying: newElements)
                 self = .other(otherContainer)
             }
@@ -78,26 +76,24 @@ extension TinyRigidArray where OtherContainer: ~Copyable, OtherContainer == Rigi
         initializingWith body: (inout OutputSpan<Element>) throws(E) -> Result
     ) throws(E) -> Result? {
         switch self.takeBase() {
-        case .inline(var inline):
+        case .inline(var inlineElements):
             do {
-                if let result = try inline.append(count: count, initializingWith: body) {
-                    self = .inline(inline)
+                if let result = try inlineElements.append(count: count, initializingWith: body) {
+                    self = .inline(inlineElements)
                     return result
                 }
             } catch {
-                self = .inline(inline)
+                self = .inline(inlineElements)
                 throw error
             }
 
-            let capacity = Int(truncatingIfNeeded: inline.reserveCapacity)
+            let capacity = Int(truncatingIfNeeded: inlineElements.reserveCapacity)
             var otherContainer = RigidArray<Element>(capacity: capacity)
             do {
                 // otherContainer.edit { output in
                 // FIXME: Use this instead of 2 different appends
                 // }
-                inline.withSpan { span in
-                    otherContainer.append(copying: span)
-                }
+                otherContainer.append(copying: inlineElements.span)
                 let result = try otherContainer.append(count: count, initializingWith: body)
                 self = .other(otherContainer)
                 return result

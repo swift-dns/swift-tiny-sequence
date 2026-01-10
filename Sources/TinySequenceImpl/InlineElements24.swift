@@ -1,16 +1,36 @@
+public import Builtin
+public import TinySequenceCore
+
 public struct _InlineElements24<Element>
 where Element: BitwiseCopyable {
     /// 3x UInt64 == 3x 64 bits == 3x 8 bytes == 24 bytes.
-    public typealias BitPattern = (UInt64, UInt64, UInt64)
+    public typealias BitPattern = Builtin.FixedArray<3, UInt64>
 
     public var bits: BitPattern
     public var reserveCapacity: UInt32
     public var bytesCount: UInt8
 
     public init(reserveCapacity: UInt32) {
-        self.bits = (0, 0, 0)
+        self.bits = Builtin.emplace {
+            let buffer = unsafe Self._initializationBuffer(start: $0)
+            unsafe buffer.initialize(repeating: UInt64(0))
+        }
         self.reserveCapacity = reserveCapacity
         self.bytesCount = 0
+    }
+
+    /// Converts the given raw pointer, which points at an uninitialized array
+    /// instance, to a mutable buffer suitable for initialization.
+    @unsafe
+    @_alwaysEmitIntoClient
+    @_transparent
+    internal static func _initializationBuffer(
+        start: Builtin.RawPointer
+    ) -> UnsafeMutableBufferPointer<UInt64> {
+        unsafe UnsafeMutableBufferPointer<UInt64>(
+            start: UnsafeMutablePointer<UInt64>(start),
+            count: 3
+        )
     }
 }
 
@@ -19,12 +39,64 @@ extension _InlineElements24: SendableMetatype where Element: SendableMetatype {}
 
 @available(swiftTinySequenceApplePlatforms 10.15, *)
 extension _InlineElements24: _InlineElements {
+    /// Returns a pointer to the first element in the array while performing stack
+    /// checking.
+    ///
+    /// Use this when the value of the pointer could potentially be directly used
+    /// by users (e.g. through the use of span or the unchecked subscript).
+    @_alwaysEmitIntoClient
+    @_transparent
+    internal var _protectedAddress: UnsafePointer<Element> {
+        #if $AddressOfProperty2
+        unsafe UnsafePointer<Element>(Builtin.addressOfBorrow(self.bits))
+        #else
+        unsafe UnsafePointer<Element>(Builtin.addressOfBorrow(self))
+        #endif
+    }
+
+    @_lifetime(borrow self)
+    @inlinable
+    @_alwaysEmitIntoClient
+    borrowing func __underlyingSpan() -> Span<Element> {
+        let span = unsafe Span<Element>(
+            _unsafeStart: self._protectedAddress,
+            count: self.count
+        )
+        print(#function, #fileID, Array(copying: span))
+        return unsafe _overrideLifetime(span, borrowing: self.bits)
+    }
+
+    @_alwaysEmitIntoClient
+    public var span: Span<Element> {
+        @_lifetime(borrow self)
+        @_transparent
+        borrowing get {
+            let span = unsafe Span(_unsafeStart: _protectedAddress, count: count)
+            return unsafe _overrideLifetime(span, borrowing: self)
+        }
+    }
+
+    public var mutableSpan: MutableSpan<Element> {
+        @_lifetime(&self)
+        mutating get {
+            let a = Builtin.addressof(&self.bits)
+            let address = unsafe UnsafeMutableRawBufferPointer(
+                start: UnsafeMutableRawPointer(
+                    mutating: UnsafePointer<Element>(a)
+                ),
+                count: Int(self.bytesCount)
+            )
+            let span = unsafe MutableSpan<Element>(
+                _unsafeBytes: address
+            )
+            return unsafe _overrideLifetime(span, borrowing: self.bits)
+        }
+    }
+
     /// Returns true if the element was appended, false if the element was not appended because the inline elements are full.
     @inlinable
     public mutating func append(_ element: Element) -> Bool {
-        guard self.freeCapacity > 0 else {
-            return false
-        }
+        if self.freeCapacity == 0 { return false }
         withUnsafeMutableBytes(of: &self.bits) { ptr in
             ptr.baseAddress.unsafelyUnwrapped.storeBytes(
                 of: element,
@@ -40,7 +112,7 @@ extension _InlineElements24: _InlineElements {
     @inlinable
     public mutating func append(copying newElements: UnsafeBufferPointer<Element>) -> Bool {
         let newElementsCount = newElements.count
-        guard newElementsCount > 0 else { return true }
+        guard newElementsCount != 0 else { return true }
         guard self.freeCapacity >= newElementsCount else {
             return false
         }
