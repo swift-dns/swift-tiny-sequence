@@ -7,8 +7,6 @@ extension String {
     public init<InlineElements: _InlineElements<UInt8>>(
         copying tinySequence: borrowing TinyRigidArray<InlineElements>
     ) {
-        self = tinySequence.withSpan { span in
-            Self.init(copying: span)
-        }
+        self.init(copying: tinySequence.span)
     }
 }
