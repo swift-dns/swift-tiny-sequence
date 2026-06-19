@@ -8,7 +8,7 @@ on:
 
 defaults:
   run:
-    shell: bash --noprofile --norc -e -u -o pipefail {0}
+    shell: bash --noprofile --norc -Eeuo pipefail {0}
 
 jobs:
   lint:
@@ -16,7 +16,7 @@ jobs:
 
     timeout-minutes: 10
 
-    container: swift:6.2-noble
+    container: swift:6.3-noble
 
     permissions:
       contents: write # For committing formatting updates
@@ -33,7 +33,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Check out ${{ github.event.repository.name }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Check config file
         run: |

@@ -30,7 +30,7 @@ on:
 
 defaults:
   run:
-    shell: bash --noprofile --norc -e -u -o pipefail {0}
+    shell: bash --noprofile --norc -Eeuo pipefail {0}
 
 env:
   RUN_LINK: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
@@ -46,13 +46,6 @@ jobs:
       contents: write # For the committing the changes
 
     steps:
-      # jemalloc is a dependency of the Benchmarking package
-      # actions/cache will detect zstd and will become much faster.
-      # jemalloc, zstd and jq are already installed in the self-hosted runner so we skip this step.
-
-      - name: Manually update PATH with Swift
-        run: echo "/home/gha/.local/share/swiftly/toolchains/6.2.3/usr/bin" >> $GITHUB_PATH
-
       - name: Enable full performance
         run: /usr/bin/ordo-performance
 
@@ -71,7 +64,7 @@ jobs:
           comment-tag: benchmark-thresholds-update-comment
 
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -85,7 +78,7 @@ jobs:
       - name: Restore .build
         if: ${{ runner.debug != '1' }}
         id: restore-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: Benchmarks/.build
           key: "swiftpm-benchmark-build-${{ runner.os }}-${{ github.sha }}"
@@ -119,12 +112,12 @@ jobs:
 
       - name: Cache .build
         if: steps.restore-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: Benchmarks/.build
           key: "swiftpm-benchmark-build-${{ runner.os }}-${{ github.sha }}"
 
-      - name: Format threshold files with jq
+      - name: Format and floor threshold files
         if: always()
         run: |
           echo "Processing threshold files..."
@@ -132,6 +125,7 @@ jobs:
             echo "Processing: ${file}"
             jq '.' "${file}" > "${file}.tmp" && mv "${file}.tmp" "${file}"
           done
+          .github/scripts/floor-thresholds.bash "${{ env.THRESHOLDS_PATH }}"
 
       - name: Check for modifications
         id: check-modifications

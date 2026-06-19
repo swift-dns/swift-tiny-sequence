@@ -10,7 +10,7 @@ on:
 
 defaults:
   run:
-    shell: bash --noprofile --norc -e -u -o pipefail {0}
+    shell: bash --noprofile --norc -Eeuo pipefail {0}
 
 env:
   RUN_LINK: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
@@ -26,13 +26,6 @@ jobs:
       contents: write # For committing threshold updates
 
     steps:
-      # jemalloc is a dependency of the Benchmarking package
-      # actions/cache will detect zstd and will become much faster.
-      # jemalloc, zstd and jq are already installed in the self-hosted runner so we skip this step.
-
-      - name: Manually update PATH with Swift
-        run: echo "/home/gha/.local/share/swiftly/toolchains/6.2.3/usr/bin" >> $GITHUB_PATH
-
       - name: Enable full performance
         run: /usr/bin/ordo-performance
 
@@ -83,7 +76,7 @@ jobs:
           comment-tag: benchmark-ci-comment
 
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: "${{ steps.commit-info.outputs.ref }}"
           fetch-depth: 0
@@ -97,7 +90,7 @@ jobs:
       - name: Restore .build
         if: ${{ runner.debug != '1' }}
         id: restore-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: Benchmarks/.build
           key: "swiftpm-benchmark-build-${{ runner.os }}-${{ steps.commit-info.outputs.sha }}"
@@ -147,7 +140,7 @@ jobs:
 
       - name: Cache .build
         if: steps.restore-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: Benchmarks/.build
           key: "swiftpm-benchmark-build-${{ runner.os }}-${{ steps.commit-info.outputs.sha }}"
@@ -163,7 +156,7 @@ jobs:
             --path "$PWD/${{ env.THRESHOLDS_PATH }}" \
             --range
 
-      - name: Format threshold files with jq
+      - name: Format and floor threshold files
         if: steps.comparison.outputs.exit-status != '0'
         run: |
           echo "Processing threshold files..."
@@ -171,6 +164,7 @@ jobs:
             echo "Processing: ${file}"
             jq '.' "${file}" > "${file}.tmp" && mv "${file}.tmp" "${file}"
           done
+          .github/scripts/floor-thresholds.bash "${{ env.THRESHOLDS_PATH }}"
 
       - name: Check for modifications
         if: steps.comparison.outputs.exit-status != '0'
@@ -203,6 +197,20 @@ jobs:
           git push -f origin "${NEW_BRANCH}"
 
           echo "commit-sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Commit threshold changes to the PR branch
+        if: steps.check-modifications.outputs.has-modifications == 'true' && steps.commit-info.outputs.pr_number != ''
+        run: |
+          CURRENT_BRANCH="${{ github.head_ref }}"
+
+          git checkout -B "${CURRENT_BRANCH}" "origin/${CURRENT_BRANCH}"
+          git checkout "${{ steps.commit-update.outputs.commit-sha }}" -- "${{ env.THRESHOLDS_PATH }}"
+          git add "${{ env.THRESHOLDS_PATH }}"
+          git commit -m "Update of benchmark thresholds with the deviated baseline
+
+          Committed to ${CURRENT_BRANCH} by ${RUN_LINK}"
+
+          git push origin "${CURRENT_BRANCH}" || echo "Failed to push threshold changes to '${CURRENT_BRANCH}'; continuing without failing the job."
 
       - name: Construct result comment if the benchmark-process succeeded
         run: |
