@@ -1,4 +1,4 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.3
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -7,53 +7,30 @@ let package = Package(
     name: "swift-tiny-sequence",
     products: [
         .library(
-            name: "TinySequence",
-            targets: ["TinySequence"]
+            name: "TinyArray",
+            targets: ["TinyArray"]
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-collections.git", from: "1.3.0")
+        .package(url: "https://github.com/apple/swift-collections.git", from: "1.6.0")
     ],
     targets: [
         .target(
-            name: "TinySequenceCore",
-            swiftSettings: settings
-        ),
-        .target(
-            name: "TinySequence",
+            name: "TinyArray",
             dependencies: [
-                "TinySequenceImpl",
-                "RigidArrayPlusTinySequence",
-                "UniqueArrayPlusTinySequence",
-            ],
-            swiftSettings: settings
-        ),
-        .target(
-            name: "TinySequenceImpl",
-            swiftSettings: settings
-        ),
-        .target(
-            name: "RigidArrayPlusTinySequence",
-            dependencies: [
-                "TinySequenceCore",
-                "TinySequenceImpl",
+                "RigidArrayImpl",
                 .product(name: "BasicContainers", package: "swift-collections"),
             ],
             swiftSettings: settings
         ),
         .target(
-            name: "UniqueArrayPlusTinySequence",
-            dependencies: [
-                "TinySequenceCore",
-                "TinySequenceImpl",
-                .product(name: "BasicContainers", package: "swift-collections"),
-            ],
+            name: "RigidArrayImpl",
             swiftSettings: settings
         ),
         .testTarget(
-            name: "TinySequenceTests",
+            name: "TinyArrayTests",
             dependencies: [
-                "TinySequence",
+                "TinyArray",
                 .product(name: "BasicContainers", package: "swift-collections"),
             ],
             swiftSettings: settings
@@ -68,15 +45,16 @@ var settings: [SwiftSetting] {
         .enableUpcomingFeature("MemberImportVisibility"),
         .enableUpcomingFeature("InternalImportsByDefault"),
         .enableUpcomingFeature("ExistentialAny"),
+        .enableUpcomingFeature("StrictMemorySafety"),
         .enableExperimentalFeature("Lifetimes"),
         .enableExperimentalFeature(
-            "AvailabilityMacro=swiftTinySequenceApplePlatforms 26:macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26"
+            "AvailabilityMacro=SwiftStdlib 5.1:macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0"
         ),
         .enableExperimentalFeature(
-            "AvailabilityMacro=swiftTinySequenceApplePlatforms 11:macOS 11, iOS 14, tvOS 14, watchOS 7"
+            "AvailabilityMacro=SwiftStdlib 5.3:macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0"
         ),
         .enableExperimentalFeature(
-            "AvailabilityMacro=swiftTinySequenceApplePlatforms 10.15:macOS 10.15, iOS 13, tvOS 13, watchOS 6"
+            "AvailabilityMacro=SwiftStdlib 6.2:macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0"
         ),
     ]
 }
