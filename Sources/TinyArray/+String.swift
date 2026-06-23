@@ -1,4 +1,4 @@
-@available(swiftTinySequenceApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension String {
     /// Initializes a `String` by copying the given span.
     @inlinable
@@ -20,7 +20,7 @@ extension String {
             _ buffer: UnsafeMutableBufferPointer<UInt8>
         ) throws -> Int
     ) rethrows {
-        if #available(swiftTinySequenceApplePlatforms 11, *) {
+        if #available(SwiftStdlib 5.3, *) {
             try self.init(unsafeUninitializedCapacity: capacity) { buffer in
                 try initializer(buffer)
             }
