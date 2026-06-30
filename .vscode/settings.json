@@ -5,9 +5,5 @@
   "swift.buildArguments": ["--disable-xctest"],
   "swift.recordTestDuration": false,
   "git.ignoreLimitWarning": true,
-  "cSpell.words": ["Keepalive"],
-  "swift.path": "/Applications/Xcode 26.2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
-  "swift.swiftEnvironmentVariables": {
-    "DEVELOPER_DIR": "/Applications/Xcode 26.2.app/Contents/Developer"
-  }
+  "cSpell.words": ["Keepalive"]
 }

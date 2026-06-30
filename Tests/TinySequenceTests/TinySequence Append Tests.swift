@@ -17,11 +17,14 @@ extension `TinySequence Append Tests` {
             reserveCapacity: 26
         )
 
+        var isAllocatedInline = seq.isAllocatedInline
+        #expect(isAllocatedInline)
+
         seq.append(1)
         seq.append(2)
         seq.append(3)
         #expect(Array(copying: seq) == (1...3).map({ $0 }))
-        var isAllocatedInline = seq.isAllocatedInline
+        isAllocatedInline = seq.isAllocatedInline
         #expect(isAllocatedInline)
 
         seq.append(4)
@@ -85,11 +88,14 @@ extension `TinySequence Append Tests` {
             reserveCapacity: 14
         )
 
+        var isAllocatedInline = seq.isAllocatedInline
+        #expect(isAllocatedInline)
+
         seq.append(1)
         seq.append(2)
         seq.append(3)
         #expect(Array(copying: seq) == (1...3).map({ $0 }))
-        var isAllocatedInline = seq.isAllocatedInline
+        isAllocatedInline = seq.isAllocatedInline
         #expect(isAllocatedInline)
 
         seq.append(4)
@@ -126,10 +132,13 @@ extension `TinySequence Append Tests` {
             reserveCapacity: 9
         )
 
+        var isAllocatedInline = seq.isAllocatedInline
+        #expect(isAllocatedInline)
+
         seq.append(1)
         seq.append(2)
         #expect(Array(copying: seq) == (1...2).map({ $0 }))
-        var isAllocatedInline = seq.isAllocatedInline
+        isAllocatedInline = seq.isAllocatedInline
         #expect(isAllocatedInline)
 
         seq.append(3)
@@ -156,9 +165,12 @@ extension `TinySequence Append Tests` {
             reserveCapacity: 26
         )
 
+        var isAllocatedInline = seq.isAllocatedInline
+        #expect(isAllocatedInline)
+
         seq.append(contentsOf: [1, 2, 3])
         #expect(Array(copying: seq) == (1...3).map({ $0 }))
-        var isAllocatedInline = seq.isAllocatedInline
+        isAllocatedInline = seq.isAllocatedInline
         #expect(isAllocatedInline)
 
         seq.append(contentsOf: [4, 5, 6])
@@ -207,9 +219,12 @@ extension `TinySequence Append Tests` {
             reserveCapacity: 14
         )
 
+        var isAllocatedInline = seq.isAllocatedInline
+        #expect(isAllocatedInline)
+
         seq.append(contentsOf: [1, 2, 3])
         #expect(Array(copying: seq) == (1...3).map({ $0 }))
-        var isAllocatedInline = seq.isAllocatedInline
+        isAllocatedInline = seq.isAllocatedInline
         #expect(isAllocatedInline)
 
         seq.append(contentsOf: [4, 5, 6])
@@ -239,9 +254,12 @@ extension `TinySequence Append Tests` {
             reserveCapacity: 9
         )
 
+        var isAllocatedInline = seq.isAllocatedInline
+        #expect(isAllocatedInline)
+
         seq.append(contentsOf: [1, 2])
         #expect(Array(copying: seq) == (1...2).map({ $0 }))
-        var isAllocatedInline = seq.isAllocatedInline
+        isAllocatedInline = seq.isAllocatedInline
         #expect(isAllocatedInline)
 
         seq.append(contentsOf: [3, 4, 5, 6])
@@ -263,13 +281,16 @@ extension `TinySequence Append Tests` {
             reserveCapacity: 26
         )
 
+        var isAllocatedInline = seq.isAllocatedInline
+        #expect(isAllocatedInline)
+
         seq.append(count: 3) { output in
             output.append(1)
             output.append(2)
             output.append(3)
         }
         #expect(Array(copying: seq) == (1...3).map({ $0 }))
-        var isAllocatedInline = seq.isAllocatedInline
+        isAllocatedInline = seq.isAllocatedInline
         #expect(isAllocatedInline)
 
         seq.append(count: 3) { output in
@@ -349,13 +370,16 @@ extension `TinySequence Append Tests` {
             reserveCapacity: 14
         )
 
+        var isAllocatedInline = seq.isAllocatedInline
+        #expect(isAllocatedInline)
+
         seq.append(count: 3) { output in
             output.append(1)
             output.append(2)
             output.append(3)
         }
         #expect(Array(copying: seq) == (1...3).map({ $0 }))
-        var isAllocatedInline = seq.isAllocatedInline
+        isAllocatedInline = seq.isAllocatedInline
         #expect(isAllocatedInline)
 
         seq.append(count: 3) { output in
@@ -400,12 +424,15 @@ extension `TinySequence Append Tests` {
             reserveCapacity: 9
         )
 
+        var isAllocatedInline = seq.isAllocatedInline
+        #expect(isAllocatedInline)
+
         seq.append(count: 2) { output in
             output.append(1)
             output.append(2)
         }
         #expect(Array(copying: seq) == (1...2).map({ $0 }))
-        var isAllocatedInline = seq.isAllocatedInline
+        isAllocatedInline = seq.isAllocatedInline
         #expect(isAllocatedInline)
 
         seq.append(count: 4) { output in

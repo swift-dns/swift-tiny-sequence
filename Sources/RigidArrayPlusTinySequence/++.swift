@@ -4,16 +4,16 @@ public import TinySequenceImpl
 @available(swiftTinySequenceApplePlatforms 10.15, *)
 extension TinySequence where OtherContainer: ~Copyable, OtherContainer == RigidArray<Element> {
     @inlinable
-    public func withSpan<T, E: Error>(
-        operation: (Span<Element>) throws(E) -> T
-    ) throws(E) -> T {
-        switch self.base {
-        case .inline(let inlineElements):
-            return try inlineElements.withSpan { span throws(E) -> T in
-                try operation(span)
+    public var span: Span<Element> {
+        @_lifetime(borrow self)
+        @inlinable
+        borrowing get {
+            switch self.base {
+            case .inline(let inlineElements):
+                return _overrideLifetime(inlineElements.span, borrowing: self.base)
+            case .other(let otherSequence):
+                return otherSequence.span
             }
-        case .other(let otherSequence):
-            return try operation(otherSequence.span)
         }
     }
 

@@ -7,8 +7,6 @@ extension Array {
     public init<InlineElements: _InlineElements>(
         copying tinySequence: borrowing TinyRigidArray<InlineElements>
     ) where InlineElements.Element == Self.Element {
-        self = tinySequence.withSpan { span in
-            Self.init(copying: span)
-        }
+        self.init(copying: tinySequence.span)
     }
 }
